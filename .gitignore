@@ -31,3 +31,11 @@ node_modules
 
 # Optional REPL history
 .node_repl_history
+
+archive/*.zip
+temp-file/results/*
+test-files/*.jmx
+servers-info/jmeter-servers/*.json
+servers-info/target-servers/*.json
+.vagrant
+credentials/*.json

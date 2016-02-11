@@ -1,0 +1,61 @@
+{
+  "name": "performance-storm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stierma1/performance-storm.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stierma1/performance-storm/issues"
+  },
+  "homepage": "https://github.com/stierma1/performance-storm#readme",
+  "devDependencies": {
+    "babel-core": "^6.4.5",
+    "babel-loader": "^6.2.1",
+    "body-parser": "^1.14.2",
+    "bootstrap": "^3.3.6",
+    "bootstrap-webpack": "0.0.5",
+    "busboy": "^0.2.12",
+    "css-loader": "^0.23.1",
+    "exports-loader": "^0.6.2",
+    "expose-loader": "^0.7.1",
+    "express": "^4.13.4",
+    "express-session": "^1.13.0",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "file-loader": "^0.8.5",
+    "grunt": "^0.4.5",
+    "grunt-webpack": "^1.0.11",
+    "imports-loader": "^0.6.5",
+    "jquery": "^2.2.0",
+    "less": "^2.6.0",
+    "less-loader": "^2.2.2",
+    "math-logic-center": "^1.0.1",
+    "nools": "^0.4.1",
+    "stats-center": "^1.0.1",
+    "style-loader": "^0.13.0",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.12.12",
+    "webpack-dev-server": "^1.14.1",
+    "window-slots": "^1.0.16"
+  },
+  "dependencies": {
+    "archiver": "^0.21.0",
+    "body-parser": "^1.14.2",
+    "busboy": "^0.2.12",
+    "glob": "^6.0.4",
+    "lodash": "^4.1.0",
+    "mkdirp": "^0.5.1",
+    "request": "^2.67.0",
+    "scp2": "^0.2.2",
+    "simple-ssh": "^0.8.7",
+    "ssh2": "^0.4.13",
+    "uuid": "^2.0.1"
+  }
+}

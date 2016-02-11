@@ -1,0 +1,431 @@
+
+define Worker {
+  id: -1,
+  state: "init",
+  current_batch: null,
+  current_run: null,
+  publishRun: null,
+  publishBatch: null,
+  verify: null,
+  verifyRun: null,
+  run: null,
+  jmeterHost: '',
+  credential: '',
+  serverName: ''
+}
+
+define WorkerReplace {
+  worker: null,
+  jmeterHost: '',
+  credential: ''
+}
+
+define Batch{
+  name: null,
+  id: -1,
+  state:"init",
+  worker: null,
+  runs: []
+}
+
+define Run {
+  name: null,
+  id: -1,
+  state: "init",
+  worker: null,
+  testFile: '',
+  batch: null,
+  targetServerHost: '',
+  targetServer: '',
+  threads: 1,
+  loops: 1,
+  credential: ''
+}
+
+define WorkerCleanUp {
+  worker: null
+}
+
+define ServerClaims {
+  servers: {},
+  state: "open",
+  unclaimFaults:[],
+  claimFaults:[]
+}
+
+define Claim {
+  state: "init",
+  targetServer: null,
+  worker: null,
+  creationTime: null,
+  activationTime: null
+}
+
+define Unclaim {
+  claimObj: null
+}
+
+rule "Init Worker" {
+  when {
+    w : Worker w.state === "init";
+  } then {
+    modify(w, function(){
+      w.state = "waiting";
+      w.run = w.run.bind(w);
+      w.publishRun = w.publishRun.bind(w);
+      w.publishBatch = w.publishBatch.bind(w);
+      w.verify = w.verify.bind(w);
+      w.verifyRun = w.verifyRun.bind(w);
+    });
+  }
+}
+
+rule "Worker Consume" {
+  when {
+    w : Worker w.state === "waiting" && w.current_batch === null;
+    b : Batch b.worker === null;
+  } then {
+    modify(w, function(){
+      w.state = "consuming";
+      w.current_batch = b;
+    });
+    modify(b, function(){
+      b.worker = w;
+    });
+  }
+}
+
+rule "Worker Produce Runs" {
+  when {
+    w : Worker w.state === "consuming";
+    b : Batch b.state === "init" && b.worker === w
+  } then {
+
+    b.runs.map(function(run){
+      var r = new Run(run);
+      r.worker = w;
+      r.state = "init";
+      assert(r);
+    });
+
+    modify(b, function(){
+      b.state = "verifying";
+    });
+  }
+}
+
+rule "Worker Batch Verify" {
+  when {
+    w : Worker w.state === "consuming";
+    b : Batch b.state === "verifying" && b.worker === w
+  } then {
+    w.verify()
+      .then(function(){
+        modify(w, function(){
+          w.state = "running";
+        });
+        modify(b, function(){
+          b.state = "running";
+        });
+
+        next();
+      })
+      .catch(function(err){
+        modify(w, function(){
+          w.state = "error";
+        });
+        modify(b, function(){
+          b.state = "error";
+        });
+        assert(new Error({error:err, worker:w, batch:b}));
+        next();
+      })
+  }
+}
+
+rule "Create Worker Run Claim" {
+  when {
+    w : Worker w.state === "running" && w.current_run === null;
+    b : Batch b.state === "running" && b.worker === w;
+    r : Run r.state === "init" && r.worker === w;
+    not(c : Claim c.worker === w && c.targetServer === r.targetServer);
+  } then {
+    modify(w, function(){
+      w.current_run = r;
+    });
+    modify(r, function(){
+      r.state = "verifying";
+    });
+    assert(new Claim({
+      targetServer : r.targetServer,
+      worker: w,
+      creationTime: new Date()
+    }));
+  }
+}
+
+rule "Worker Run Init" {
+  when {
+    w : Worker w.state === "running";
+    b : Batch b.state === "running" && b.worker === w;
+    r : Run r.state === "verifying" && r.worker === w && w.current_run === r;
+    c : Claim c.state === "active" && c.worker === w && c.targetServer === r.targetServer;
+  } then {
+    w.verifyRun()
+      .then(function(){
+        modify(r, function(){
+          r.state = "running";
+        });
+        next();
+      })
+      .catch(function(err){
+        modify(w, function(){
+          w.state = "error";
+        });
+        modify(b, function(){
+          b.state = "error";
+        });
+        modify(r, function(){
+          r.state = "error";
+        });
+        assert(new Error({error:err, worker:w, batch:b, run:r}));
+        next();
+      })
+  }
+}
+
+rule "Worker Start Run" {
+  when {
+    w : Worker w.state === "running";
+    b : Batch b.state === "running" && b.worker === w;
+    c : Claim c.state === "active" && c.worker === w;
+    r : Run r.state === "running" && r.worker === w && w.current_run === r && c.targetServer === r.targetServer;
+  } then {
+    w.run()
+      .then(function(){
+        modify(r, function(){
+          r.state = "done";
+        });
+
+        next();
+      })
+      .catch(function(err){
+        modify(w, function(){
+          w.state = "error";
+        });
+        modify(b, function(){
+          b.state = "error";
+        });
+        modify(r, function(){
+          r.state = "error";
+        });
+        assert(new Error({error:err, worker:w, batch:b, run:r}));
+        next();
+      });
+  }
+}
+
+rule "Worker Publish Run" {
+  when {
+    w : Worker w.state === "running";
+    b : Batch b.state === "running" && b.worker === w;
+    c : Claim c.state === "active" && c.worker === w ;
+    r : Run r.state === "done" && r.worker === w && w.current_run === r && c.targetServer === r.targetServer;
+  } then {
+    w.publishRun()
+      .then(function(){
+        modify(c, function(){
+          c.state = "unclaiming";
+        });
+        assert(new Unclaim({claimObj:c}));
+        next();
+      })
+      .catch(function(err){
+        modify(w, function(){
+          w.state = "error";
+        });
+        modify(b, function(){
+          b.state = "error";
+        });
+        modify(r, function(){
+          r.state = "error";
+        });
+
+        next();
+      });
+  }
+}
+
+rule "Worker Done With Run" {
+  when {
+    w : Worker w.state === "running";
+    b : Batch b.state === "running" && b.worker === w;
+    r : Run r.state === "done" && r.worker === w && w.current_run === r;
+    not(c : Claim c.worker === w && c.targetServer === r.targetServer);
+  } then {
+    modify(w, function(){
+      w.current_run = null;
+    });
+  }
+}
+
+rule "Worker Publish Batch" {
+  when {
+    w : Worker w.state === "running" && w.current_run === null;
+    b : Batch b.state === "running" && b.worker === w;
+    not(r : Run r.worker === w && r.state !== "done");
+  } then {
+    w.publishBatch()
+      .then(function(){
+        modify(b, function(){
+          b.state = "done";
+        });
+
+        next();
+      })
+      .catch(function(err){
+        modify(w, function(){
+          w.state = "error";
+        });
+        modify(b, function(){
+          b.state = "error";
+        });
+        modify(r, function(){
+          r.state = "error";
+        });
+        assert(new Error({error:err, worker:w, batch:b, run:r}));
+        next();
+      });
+  }
+}
+
+rule "Worker Finish Batch" {
+  when {
+    w : Worker w.state === "running";
+    b : Batch b.state === "done" && b.worker === w && w.current_batch === b;
+  } then {
+    modify(w, function(){
+      w.current_batch = null;
+    });
+
+    assert(new WorkerCleanUp({worker:w}));
+  }
+}
+
+rule "Clean Up Batch" {
+  when {
+    c : WorkerCleanUp;
+    w : Worker c.worker === w;
+    b : Batch b.worker === w;
+    not(r : Run r.worker === w);
+  } then {
+    modify(w, function(){
+      w.state = "waiting";
+      w.current_batch = null;
+      w.current_run = null;
+    });
+
+    retract(b);
+    retract(c);
+  }
+}
+
+rule "Clean Up Runs" {
+  when {
+    c : WorkerCleanUp;
+    w : Worker c.worker === w;
+    r : Run r.worker === w;
+  } then {
+    retract(r);
+  }
+}
+
+rule "Add Claim" {
+  when {
+    c: Claim c.state === "init";
+    not(u: Unclaim u.claimObj === c);
+    s: ServerClaims;
+  } then {
+    modify(c, function(){
+      c.state = "waiting";
+    });
+    modify(s, function(){
+      s.addClaim(c)
+        .then(function(){
+          modify(c, function(){
+            c.state = "queued";
+          });
+          next();
+        })
+        .catch(function(err){
+          c.state = "error";
+          c.error = err;
+          next();
+        })
+    });
+  }
+}
+
+rule "Activate Claim" {
+  when{
+    c: Claim c.state === "queued";
+    not(u: Unclaim u.claimObj === c);
+    s: ServerClaims s.state === "open" && s.servers[c.targetServer].activeClaim === null && s.servers[c.targetServer].queue[0] === c;
+  } then {
+    modify(c, function(){
+      this.state = "active";
+      this.activationTime = new Date();
+    });
+
+    modify(s, function(){
+      s.servers[c.targetServer].activeClaim = c;
+      s.servers[c.targetServer].queue.shift();
+    });
+  }
+}
+
+rule "Unclaim"{
+  when {
+    u: Unclaim;
+    c: Claim u.claimObj === c;
+    s: ServerClaims s.state === "open";
+  } then {
+
+    modify(s, function(){
+      s.state = "closed";
+      var un = u;
+      var cl = c;
+      s.unclaim(cl)
+        .then(() => {
+          modify(s, function(){
+            s.state = "open";
+          });
+
+          retract(cl);
+          retract(un);
+          next();
+        })
+        .catch((err) => {
+          s.state = "error";
+          console.log(err);
+          s.unclaimFaults.push([un,cl]);
+          retract(un);
+          retract(cl);
+          next();
+        });
+    });
+  }
+}
+
+rule "Replace Worker" {
+  when {
+    wr: WorkerReplace;
+    w: Worker w.state === "waiting" &&  w === wr.worker;
+  } then {
+    modify(w, function(){
+      w.jmeterHost = wr.jmeterHost;
+      w.credential = wr.credential;
+    });
+    retract(wr);
+  }
+}
