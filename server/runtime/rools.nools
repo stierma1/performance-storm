@@ -6,12 +6,14 @@ define Worker {
   current_run: null,
   publishRun: null,
   publishBatch: null,
+  publishKill: null,
   verify: null,
   verifyRun: null,
   run: null,
   jmeterHost: '',
   credential: '',
-  serverName: ''
+  serverName: '',
+  killRun: null
 }
 
 define WorkerReplace {
@@ -25,7 +27,8 @@ define Batch{
   id: -1,
   state:"init",
   worker: null,
-  runs: []
+  runs: [],
+  creationTime: Date.now()
 }
 
 define Run {
@@ -39,7 +42,8 @@ define Run {
   targetServer: '',
   threads: 1,
   loops: 1,
-  credential: ''
+  credential: '',
+  startTime: null
 }
 
 define WorkerCleanUp {
@@ -65,6 +69,62 @@ define Unclaim {
   claimObj: null
 }
 
+define KillRun {
+  runId: '',
+  reason: ''
+}
+
+define KillBatch {
+  batchId: '',
+  reason: ''
+}
+
+define RunTimeout{
+  maxTime: 0,
+  timeout: 0
+}
+
+define BatchTimeout{
+  currentTime: 0,
+  timeout: 0
+}
+
+rule "Apply Run timeout" {
+  when{
+    rt: RunTimeout;
+    r: Run r.state !== "done" && r.startTime !== null && r.startTime + rt.timeout < rt.currentTime;
+  } then {
+    assert(new KillRun({runId:r.id, reason: "Run Timeout: " + r.id}));
+  }
+}
+
+rule "Destroy Run timeout" {
+  when{
+    rt: RunTimeout;
+    not(r: Run r.state !== "done" && r.startTime !== null && r.startTime + rt.timeout < rt.currentTime);
+  } then {
+    retract(rt);
+  }
+}
+
+rule "Apply Batch timeout" {
+  when{
+    bt: BatchTimeout;
+    b: Batch b.state !== "done" && b.creationTime + bt.timeout < bt.currentTime;
+  } then {
+    assert(new KillBatch({batchId:b.id, reason: "Batch Timeout: " + b.id}));
+  }
+}
+
+rule "Destroy Batch timeout" {
+  when{
+    bt: BatchTimeout;
+    not(b: Batch b.state !== "done" && b.creationTime + bt.timeout < bt.currentTime);
+  } then {
+    retract(bt);
+  }
+}
+
 rule "Init Worker" {
   when {
     w : Worker w.state === "init";
@@ -74,8 +134,10 @@ rule "Init Worker" {
       w.run = w.run.bind(w);
       w.publishRun = w.publishRun.bind(w);
       w.publishBatch = w.publishBatch.bind(w);
+      w.publishKill = w.publishKill.bind(w);
       w.verify = w.verify.bind(w);
       w.verifyRun = w.verifyRun.bind(w);
+      w.killRun = w.killRun.bind(w);
     });
   }
 }
@@ -105,6 +167,8 @@ rule "Worker Produce Runs" {
       var r = new Run(run);
       r.worker = w;
       r.state = "init";
+      r.batch = b;
+      r.startTime = new Date();
       assert(r);
     });
 
@@ -179,6 +243,10 @@ rule "Worker Run Init" {
         next();
       })
       .catch(function(err){
+        if(err === "Client was killed"){
+          next();
+          return;
+        }
         modify(w, function(){
           w.state = "error";
         });
@@ -210,6 +278,10 @@ rule "Worker Start Run" {
         next();
       })
       .catch(function(err){
+        if(err === "Client was killed"){
+          next();
+          return;
+        }
         modify(w, function(){
           w.state = "error";
         });
@@ -241,6 +313,10 @@ rule "Worker Publish Run" {
         next();
       })
       .catch(function(err){
+        if(err === "Client was killed"){
+          next();
+          return;
+        }
         modify(w, function(){
           w.state = "error";
         });
@@ -284,6 +360,10 @@ rule "Worker Publish Batch" {
         next();
       })
       .catch(function(err){
+        if(err === "Client was killed"){
+          next();
+          return;
+        }
         modify(w, function(){
           w.state = "error";
         });
@@ -395,21 +475,22 @@ rule "Unclaim"{
       s.state = "closed";
       var un = u;
       var cl = c;
+      retract(un);
       s.unclaim(cl)
         .then(() => {
           modify(s, function(){
             s.state = "open";
           });
+          try{
+            retract(cl);
+          } catch(err){
 
-          retract(cl);
-          retract(un);
+          }
           next();
         })
         .catch((err) => {
           s.state = "error";
-          console.log(err);
           s.unclaimFaults.push([un,cl]);
-          retract(un);
           retract(cl);
           next();
         });
@@ -427,5 +508,91 @@ rule "Replace Worker" {
       w.credential = wr.credential;
     });
     retract(wr);
+  }
+}
+
+rule "Kill Run with claim" {
+  salience: 9;
+  when {
+    kr : KillRun;
+    r: Run r.id === kr.runId;
+    w: Worker (w.state === "consuming" || w.state === "running" || w.state === "killer") && w.current_batch === r.batch;
+    c : Claim c.worker === w ;
+  } then {
+    w.killRun();
+    modify(w, function(){
+      w.state = "killer";
+      if(w.current_run === r){
+        w.current_run = null;
+      }
+    });
+    assert(new Unclaim({claimObj:c}));
+    assert(new KillBatch({batchId:w.current_batch.id, reason:kr.reason}));
+    retract(kr);
+  }
+}
+
+rule "Kill Run without claim" {
+  salience: 9;
+  when {
+    kr : KillRun;
+    r: Run r.id === kr.runId;
+    w: Worker (w.state === "consuming" || w.state === "running" || w.state === "killer") && w.current_batch === r.batch;
+    not(c : Claim c.worker === w);
+  } then {
+    w.killRun();
+    modify(w, function(){
+      w.state = "killer";
+      if(w.current_run === r){
+        w.current_run = null;
+      }
+    });
+    assert(new KillBatch({batchId:w.current_batch.id, reason:kr.reason}));
+    retract(kr);
+  }
+}
+
+rule "Kill Batch no run" {
+  salience: 9;
+  when {
+    kb: KillBatch;
+    b: Batch b.id === kb.batchId;
+    w: Worker w.current_batch === b && w.current_run === null;
+  } then {
+    w.publishKill(kb.reason);
+    assert(new WorkerCleanUp({worker:w}));
+    retract(kb);
+  }
+}
+
+rule "Kill Batch with run" {
+  salience: 9;
+  when {
+    kb: KillBatch;
+    b: Batch b.id === kb.batchId;
+    w: Worker w.current_batch === b && w.current_run !== null;
+  } then {
+    assert(new KillRun({runId:w.current_run.id, reason:kb.reason}));
+    retract(kb);
+  }
+}
+
+rule "Destroy useless Kill Batch"{
+  salience: 10;
+  when {
+    kb : KillBatch;
+    not(b: Batch b.id === kb.batchId);
+  } then {
+    retract(kb);
+  }
+}
+
+rule "Destroy useless Kill Run"{
+  salience: 10;
+  when {
+    kr : KillRun;
+    not(r: Run r.id === kr.runId);
+  } then {
+    retract(kr);
   }
 }

@@ -13,12 +13,16 @@ class CommonRunFields{
 
   getCPU(allOnly){
     return this.sysResults.sysstat.hosts[0].statistics.map(function(stats){
-      return stats["cpu-load-all"].filter(function(val){
+      var cpus = stats["cpu-load-all"].filter(function(val){
         if(allOnly){
           return val.cpu === "all";
         }
         return true;
       });
+      if(allOnly){
+        return cpus[0];
+      }
+      return cpus
     });
   }
 
@@ -41,8 +45,20 @@ class CommonRunFields{
     });
   }
 
-  getNetworkTraffic(){
+  getNetworkTraffic(mergeNetwork){
     return this.sysResults.sysstat.hosts[0].statistics.map(function(stats){
+      if(mergeNetwork){
+        return stats.network["net-dev"].reduce(function(reduced, val){
+          for(var i in val){
+            if(i === "iface"){
+              reduced[i] += val[i] + ",";
+            } else {
+              reduced[i] += val[i];
+            }
+          }
+          return reduced;
+        }, {"iface": "", "rxpck": 0.00, "txpck": 0.00, "rxkB": 0.00, "txkB": 0.00, "rxcmp": 0.00, "txcmp": 0.00, "rxmcst": 0.00})
+      }
       return stats.network["net-dev"];
     });
   }
@@ -53,7 +69,7 @@ class CommonRunFields{
     });
   }
 
-  generalReport(){
+  commonFields(){
     return flatZip({
       timestamp: this.getTimestamps(),
       cpus: this.getCPU(),
@@ -61,7 +77,30 @@ class CommonRunFields{
       io: this.getIO(),
       disk: this.getDiskTraffic(),
       network: this.getNetworkTraffic()
-    })
+    });
+  }
+
+  generalReport(){
+    var flatten = flatZip({
+      timestamp: this.getTimestamps(),
+      cpus: this.getCPU(true),
+      memory: this.getMemory(),
+      io: this.getIO(),
+      network: this.getNetworkTraffic(true)
+    });
+
+    var flatter = [];
+    for(var idx in flatten){
+      for(var i in flatten[idx]){
+        for(var j in flatten[idx][i]){
+          if(flatter[idx] === undefined){
+            flatter[idx] = {};
+          }
+          flatter[idx][j] = flatten[idx][i][j];
+        }
+      }
+    }
+    return flatter;
   }
 }
 

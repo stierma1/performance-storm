@@ -29,6 +29,7 @@ class JmeterClient {
     mediator.emit("data", "jmeter setup", config);
     this.runObj = null;
     this.fileStorageDriver = null;
+    this.kill = false;
   }
 
   _buildNewSshClient(){
@@ -40,8 +41,11 @@ class JmeterClient {
     mediator.emit("data", "initalize " + this._sshConfig.host);
     return new Promise((res, rej) => {
       this._ssh.exec("sudo ./initialize.sh", {
-        debug:console.log,
         exit: (code, stdout, stderr) => {
+          if(this.kill){
+            rej("Client was killed");
+            return;
+          }
           if(code !== 0){
             mediator.emit("error", "initialized " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, code:code, out:stdout, err:stderr});
           } else {
@@ -67,7 +71,6 @@ class JmeterClient {
         mediator.emit("data", "claim " + this._sshConfig.host);
         return new Promise((res, rej) => {
           this._ssh.exec("sudo ./claim.sh " + this.id, {
-            debug:console.log,
             exit: (code, stdout, stderr) => {
               if(code !== 0){
                 mediator.emit("error", "claimed " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, code:code, out:stdout, err:stderr});
@@ -87,14 +90,21 @@ class JmeterClient {
     mediator.emit("data", "run " + this._sshConfig.host);
 
     return new Promise((res, rej) => {
-      var comm = "sudo TARGET_SERVER={TARGET_SERVER} TEST_FILE={TEST_FILE} ./run.sh {THREADS} {LOOPS}";
-      comm = comm.replace("{TARGET_SERVER}", this.runObj.targetServerHost);
+      var comm = "sudo TARGET_SERVER={TARGET_SERVER} TEST_FILE={TEST_FILE} JMETER_THREADS={JMETER_THREADS} JMETER_LOOPS={JMETER_LOOPS} TARGET_SERVER_HOST={TARGET_SERVER_HOST} TARGET_SERVER_PORT={TARGET_SERVER_PORT} ./run.sh";
       comm = comm.replace("{TEST_FILE}", this.runObj.testFile);
-      comm = comm.replace("{THREADS}", this.runObj.threads);
-      comm = comm.replace("{LOOPS}", this.runObj.loops);
-      
+      comm = comm.replace("{JMETER_THREADS}", this.runObj.threads);
+      comm = comm.replace("{TARGET_SERVER_HOST}", this.runObj.targetServerHost);
+      comm = comm.replace("{TARGET_SERVER_PORT}", this.runObj.targetServerPort || null);
+      comm = comm.replace("{TARGET_SERVER}", this.runObj.targetServerHost);
+      comm = comm.replace("{JMETER_LOOPS}", this.runObj.loops);
+
       this._ssh.exec(comm, {
+        pty:true,
         exit: (code, stdout, stderr) => {
+          if(this.kill){
+            rej("Client was killed");
+            return;
+          }
           if(code !== 0){
             mediator.emit("error", "ran " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, code:code, out:stdout, err:stderr});
           } else {
@@ -111,7 +121,6 @@ class JmeterClient {
     mediator.emit("data", "unclaim " + this._sshConfig.host)
     return new Promise((res, rej) => {
       this._ssh.exec("sudo ./unclaim.sh", {
-        debug:console.log,
         exit: (code, stdout, stderr) => {
           if(code !== 0){
             mediator.emit("error", "unclaimed " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId,code:code, out:stdout, err:stderr});
@@ -130,6 +139,10 @@ class JmeterClient {
       var client = new Client.Client(this._scpConfig);
       client.upload(this.fileStorageDriver.getTestFilePath(this.runObj.testFile), "test-files/" + this.runObj.testFile, (err) => {
         client.close();
+        if(this.kill){
+          rej("Client was killed");
+          return;
+        }
         if(err){
           mediator.emit("error", "verified-run " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, error:err});
         } else {
@@ -140,7 +153,29 @@ class JmeterClient {
     });
   }
 
-  kill(){
+  killRun(){
+    if(this.kill){
+      return;
+    }
+    this.kill = true;
+    try{
+      this._ssh.end();
+    } catch(err){
+      mediator.emit("error", "killing previous session returned " + err.toString());
+    }
+    this._buildNewSshClient();
+    mediator.emit("data", "kill run " + this._sshConfig.host);
+    //Race
+    this._ssh.exec("sudo ./kill-run.sh", {
+      pty: true,
+      exit: (code, stdout, stderr) => {
+        if(code !== 0){
+          mediator.emit("error", "killed run " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, runId:this.runId, code: code, stderr:stderr});
+        } else {
+          mediator.emit("data", "killed run " + this._sshConfig.host);
+        }
+      }
+    }).start();
 
   }
 

@@ -8,6 +8,9 @@ var Worker = flow.getDefined("Worker");
 var Batch = flow.getDefined("Batch");
 var ServerClaims = flow.getDefined("ServerClaims");
 var WorkerReplace = flow.getDefined("WorkerReplace");
+var RunTimeout = flow.getDefined("RunTimeout");
+var BatchTimeout = flow.getDefined("BatchTimeout");
+
 var session = flow.getSession();
 
 var workerDecorator = require("../worker-decorator");
@@ -16,6 +19,7 @@ var serverClaimsDecorator = require("../server-claims-decorator");
 var mediator = require("../mediator");
 var FileStorage = require("../drivers/file-storage");
 var fs = require("fs");
+var Props = require("../../properties/dev-config");
 
 mediator.on("error", (message, data) => {
   console.log(message, data)
@@ -47,6 +51,13 @@ class Runtime{
     serverClaimsDecorator(serverClaims);
     this.session.assert(serverClaims);
 
+    this.runTimeoutInterval = setInterval(() => {
+      this.session.assert(new RunTimeout({currentTime:Date.now(), timeout:Props.runTimeout}));
+    }, 5000);
+    this.batchTimeoutInterval = setInterval(() => {
+      this.session.assert(new BatchTimeout({currentTime:Date.now(), timeout:Props.batchTimeout}));
+    }, 5000);
+
   }
 
   addWorker(workerObj){
@@ -76,6 +87,22 @@ class Runtime{
     session.assert(batch);
     session.match();
     return batch.id;
+  }
+
+  killBatch(batchId, reason){
+    var KillBatch = flow.getDefined("KillBatch");
+    var killBatch = new KillBatch({batchId:batchId, reason:reason});
+    session.assert(killBatch);
+    session.match();
+    return batchId;
+  }
+
+  killRun(runId, reason){
+    var KillRun = flow.getDefined("KillRun");
+    var killRun = new KillRun({runId:runId, reason:reason});
+    session.assert(killRun);
+    session.match();
+    return runId;
   }
 
   addServer(serverObj, serverName){

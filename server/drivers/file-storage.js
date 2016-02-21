@@ -74,7 +74,7 @@ class FileStorage {
   }
 
   getTestFiles(){
-    return glob.sync(path.join(tempfilePath, "test-files", "*")).map(function(fullPath){
+    return glob.sync(path.join(testFilePath, "*")).map(function(fullPath){
       return path.basename(fullPath);
     });
   }

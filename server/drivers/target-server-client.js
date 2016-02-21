@@ -24,6 +24,7 @@ class TargetServerClient {
     this._scpConfig = {
       host: config.host,
     };
+    this.kill = false;
   }
 
   _buildNewSshClient(){
@@ -85,6 +86,27 @@ class TargetServerClient {
         }
       }).start();
     });
+  }
+
+  killRun(){
+    if(this.kill){
+      return;
+    }
+    this.kill = true;
+    this._buildNewSshClient();
+
+    mediator.emit("data", "kill run on server " + this._sshConfig.host);
+    //Race
+    this._ssh.exec("sudo ./kill-run.sh", {
+        pty: true,
+        exit: (code, stdout, stderr) => {
+          if(code !== 0){
+            mediator.emit("error", "killed run on server " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, runId:this.runId, code: code, stderr:stderr});
+          } else {
+            mediator.emit("data", "killed run on server " + this._sshConfig.host);
+          }
+        }
+      }).start();
   }
 
   getResults(){

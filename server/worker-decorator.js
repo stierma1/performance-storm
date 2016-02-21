@@ -7,6 +7,7 @@ var CommonRunFields = require("./post-processing/reporting/run-fields");
 var fs = require("fs");
 var _ = require("lodash");
 var path = require("path");
+var mediator = require("./mediator");
 
 var EE = require("events").EventEmitter;
 
@@ -14,9 +15,24 @@ module.exports = function(worker){
   worker.ee = new EE();
 
   worker.run = function(){
-    //console.log(this.jmeterClient.run)
     return this.jmeterClient.run();
   };
+
+
+  worker.killRun = function(){
+    try{
+      this.jmeterClient.killRun();
+    } catch(err){
+      mediator.emit("error", "Worker received error killing the jmeter run: " + err.toString())
+    }
+
+    try{
+      this.targetServerClient.killRun();
+    } catch(err){
+      mediator.emit("error", "Worker received error killing the target server run: " + err.toString())
+    }
+
+  }
 
   worker.publishRun = function(){
     return this.targetServerClient.getResults().then((val) => {
@@ -31,7 +47,7 @@ module.exports = function(worker){
         var fileStorageDriver = new FileStorage({batchId:this.current_batch.id, runId:this.current_run.id});
         var runResults = fs.readFileSync(fileStorageDriver.getTargetServerResultsPath() + "/sys-results.json", "utf8");
         var runFields = new CommonRunFields(JSON.parse(runResults))
-        fs.writeFileSync(fileStorageDriver.getTargetServerResultsPath() + "/common-run-fields.json", JSON.stringify(runFields.generalReport(), null, 2))
+        fs.writeFileSync(fileStorageDriver.getTargetServerResultsPath() + "/general-run-report.json", JSON.stringify(runFields.generalReport(), null, 2))
         this.ee.emit("publish-run", {
           run: this.current_run,
           batch: this.current_batch,
@@ -54,6 +70,10 @@ module.exports = function(worker){
         });
       });
   };
+
+  worker.publishKill = function(reason){
+    console.log(this.current_batch.id ,reason)
+  }
 
   worker.verify = function(){
     this.jmeterClient = new JmeterClient({host:this.jmeterHost, credential:this.credential, workerId:this.id, batchId:this.current_batch.id});

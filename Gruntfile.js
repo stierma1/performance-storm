@@ -33,6 +33,45 @@ module.exports = function(grunt) {
       },
       all:["Gruntfile.js", "index.js", "lib/**/*.js"]
     },
+    express: {
+      options: {
+        // Override defaults here
+      },
+      dev: {
+        options: {
+          script: './server.js'
+        }
+      },
+      prod:{
+        options:{
+          scipts: ".server.js"
+        }
+      },
+      test: {
+        options: {
+          script: './server.js',
+          node_env: 'build-test'
+        }
+      }
+    },
+    watch: {
+      express: {
+        files: [ 'server.js'],
+        tasks: ["express:dev:stop","express:dev"],
+        options: {
+          spawn: false
+        }
+      },
+      client: {
+        files: ['./client/*/*/*'],
+        tasks: ["build"],
+        options: {
+          spawn: false,
+          interval: 500,
+          livereload: 35730
+        }
+      },
+    },
     webpack:{
       build: {
 	       // webpack options
@@ -72,10 +111,12 @@ module.exports = function(grunt) {
   });
 
   //grunt.loadNpmTasks('grunt-mocha-istanbul');
-  //grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-express-server');
   //grunt.loadNpmTasks('grunt-contrib-copy');
   //grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks("grunt-webpack");
+  grunt.registerTask('server', ['express:dev', 'watch']);
   //grunt.loadNpmTasks("grunt-run");
   //grunt.registerTask('jshint', ['jshint:all']);
   //grunt.registerTask('test', ['jshint', 'mocha_istanbul:coverage']);
