@@ -43,6 +43,9 @@ class Services {
     return $.ajax(Props.performanceStormUrl + "/results/batches/" + batchId + "/runs");
   }
 
+  getStandardReport(batchId){
+    return $.ajax(Props.performanceStormUrl + "/reports/standard-report/" + batchId);
+  }
 
 }
 

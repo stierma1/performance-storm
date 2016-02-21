@@ -11,7 +11,6 @@ if(process.env.NODE_ENV !== "production"){
   app.use(require('connect-livereload')({port: 35730}));
 }
 
-
 gets(app);
 posts(app);
 deletes(app);

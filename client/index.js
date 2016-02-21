@@ -7,6 +7,7 @@ var UploadCredentials = require("./content/upload-credentials");
 var UploadServerInfo = require("./content/upload-server-info");
 var UploadBatch = require("./content/upload-batch");
 var Bluebird = require("bluebird");
+var StandardReport = require("./content/standard-report");
 require('expose?$!expose?jQuery!jquery');
 require("bootstrap-webpack");
 
@@ -18,9 +19,20 @@ ss += require("css-loader!./vendor/startbootstrap-sb-admin-2-1.0.8/dist/css/sb-a
 ss += require("css-loader!./vendor/startbootstrap-sb-admin-2-1.0.8/bower_components/font-awesome/css/font-awesome.min.css").toString();
 ss += require("css-loader!./vendor/startbootstrap-sb-admin-2-1.0.8/bower_components/datatables/media/css/dataTables.jqueryui.min.css").toString();
 
+function GetQueryStringParams(sParam){
+    var sPageURL = window.location.search.substring(1);
+    var sURLVariables = sPageURL.split('&');
+    for (var i = 0; i < sURLVariables.length; i++){
+        var sParameterName = sURLVariables[i].split('=');
+        if (sParameterName[0] == sParam){
+            return sParameterName[1];
+        }
+    }
+}
+
 //module.exports = function(){
 $(document).ready(function(){
-    $("<style></style>").text(ss).appendTo($("head"));
+  $("<style></style>").text(ss).appendTo($("head"));
     new UploadTestFile($("form"));
     //new SwimLanes($("#swimlanes"));
     new UploadCredentials($("#credentials"));
@@ -31,6 +43,13 @@ $(document).ready(function(){
     }
     if($("#runs-status")){
       new StatusTable($("#runs-status"), "runs");
+    }
+
+    if($("#standard-report")){
+      if(GetQueryStringParams("batchId")){
+        var batchId = GetQueryStringParams("batchId");
+        new StandardReport($("#standard-report"), batchId);
+      }
     }
 
 

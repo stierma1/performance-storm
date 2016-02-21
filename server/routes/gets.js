@@ -2,6 +2,7 @@
 var FileStorage = require("../drivers/file-storage");
 var Runtime = require("../runtime/engine");
 var fs = require("fs");
+var StandardReport = require("../reports/standard-report");
 
 module.exports = (app) => {
   app.get("/credentials", function(req, res){
@@ -93,5 +94,11 @@ module.exports = (app) => {
     .catch((err) => {
       res.status(500).send(err);
     });
+  });
+
+  app.get("/reports/standard-report/:batchId", function(req, res){
+    var standardReport = new StandardReport(req.params.batchId);
+    standardReport.loadGeneralInfo();
+    res.json(standardReport.generate());
   });
 }
