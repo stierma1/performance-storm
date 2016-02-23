@@ -2,6 +2,7 @@ $ = require("jquery");
 jQuery = require("jquery");
 
 var StatusTable = require("./content/status-table");
+var ArchiveTable = require("./content/archive-table");
 var UploadTestFile = require("./content/upload-test-file");
 var UploadCredentials = require("./content/upload-credentials");
 var UploadServerInfo = require("./content/upload-server-info");
@@ -49,6 +50,8 @@ $(document).ready(function(){
       if(GetQueryStringParams("batchId")){
         var batchId = GetQueryStringParams("batchId");
         new StandardReport($("#standard-report"), batchId);
+      } else {
+        new ArchiveTable($("#archive-table"));
       }
     }
 

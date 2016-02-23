@@ -63,6 +63,15 @@ module.exports = (app) => {
     res.json(Runtime.getRuns(req.params.batchId));
   });
 
+  app.get("/archive", function(req, res){
+    res.json((new FileStorage()).getArchive());
+  });
+
+  app.get("/archive/:batchId", function(req, res){
+    var fileStorageDriver = new FileStorage({batchId: req.params.batchId});
+    res.download(fileStorageDriver.getArchivePath());
+  });
+
   app.get("/results/batches/:batchId/runs", function(req, res){
     var fileStorageDriver = new FileStorage({batchId:req.params.batchId});
     res.json(fileStorageDriver.getBatchRuns());

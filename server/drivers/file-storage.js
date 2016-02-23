@@ -9,6 +9,7 @@ var credentialsPath = path.join(__dirname, "../../", Props.credentialsFileDirect
 var serversFilePath = path.join(__dirname, "../../", Props.serversFileDirectory);
 var archiveFilePath = path.join(__dirname, "../../", Props.archiveFileDirectory);
 var glob = require("glob");
+var fs = require("fs");
 
 class FileStorage {
   constructor(config){
@@ -121,6 +122,13 @@ class FileStorage {
 
   getArchivePath(){
     return path.join(archiveFilePath, this.batchId + ".zip");
+  }
+
+  getArchive(){
+    return glob.sync(path.join(archiveFilePath, "*"))
+      .map(function(zipPath){
+        return {id:path.basename(zipPath, ".zip"), creationTime:fs.statSync(zipPath).birthtime};
+      });
   }
 
 }

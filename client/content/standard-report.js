@@ -13,13 +13,7 @@ class StandardReport{
   }
 
   render(){
-    var getPromise = null;
-    if(this.contentType === "runs"){
-      getPromise = Get.getRuns();
-    }
-    if(this.contentType === "batches"){
-      getPromise = Get.getBatches();
-    }
+
     Get.getStandardReport(this.batchId)
       .then((report) => {
         var cpuEle = $(`<h3>Cpu Report</h3><div class="flot-chart">

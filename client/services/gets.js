@@ -47,6 +47,13 @@ class Services {
     return $.ajax(Props.performanceStormUrl + "/reports/standard-report/" + batchId);
   }
 
+  getArchive(){
+    return $.ajax(Props.performanceStormUrl + "/archive");
+  }
+
+  getArchiveZip(batchId){
+    window.location.href = (Props.performanceStormUrl + "/archive/" + batchId);
+  }
 }
 
 module.exports = new Services();
