@@ -22,6 +22,7 @@ class StandardReport{
         var memoryEle = $(`<h3>Memory Report</h3><div class="flot-chart">
             <div class="flot-chart-content" id="memory-report"></div>
         </div>`);
+        this.el.append($("<h3></h3>").text(report.name + ": " + report.id));
         this.el.append(cpuEle);
         this.el.append(memoryEle);
         $.plot($("#cpu-report"), report.cpuSeries, {

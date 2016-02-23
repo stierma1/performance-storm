@@ -77,10 +77,8 @@ module.exports = function(worker){
 
   worker.verify = function(){
     this.jmeterClient = new JmeterClient({host:this.jmeterHost, credential:this.credential, workerId:this.id, batchId:this.current_batch.id});
-    return this.jmeterClient.claim()
-      .then(() => {
-        return this.jmeterClient.initialize();
-      });
+
+    return this.jmeterClient.initialize();
   };
 
   worker.verifyRun = function(){

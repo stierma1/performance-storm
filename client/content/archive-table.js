@@ -11,6 +11,7 @@ class ArchiveTable{
     this.el.DataTable({
       paging: false,
       columns: [
+          { data: 'name'},
           { data: 'id' },
           { data: 'creationTime' },
           { data: 'viewReport'},
@@ -31,6 +32,7 @@ class ArchiveTable{
         for(var i in archive){
           var id = archive[i].id;
           var data = {
+            name: archive[i].name,
             id:archive[i].id,
             creationTime:new Date(archive[i].creationTime),
             viewReport:"<input class='view-report' type='button' data-id='" + id + "' value='View'></input>",

@@ -64,7 +64,15 @@ module.exports = (app) => {
   });
 
   app.get("/archive", function(req, res){
-    res.json((new FileStorage()).getArchive());
+    res.json(
+      (new FileStorage()).getArchive()
+        .map(function(val){
+          var standardReport = new StandardReport(val.id);
+          standardReport.loadGeneralInfo();
+          val.name = standardReport.info.name;
+          return val;
+        })
+    );
   });
 
   app.get("/archive/:batchId", function(req, res){

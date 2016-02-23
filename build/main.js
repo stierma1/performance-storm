@@ -15799,6 +15799,7 @@
 	    this.el.DataTable({
 	      paging: false,
 	      columns: [
+	          { data: 'name'},
 	          { data: 'id' },
 	          { data: 'creationTime' },
 	          { data: 'viewReport'},
@@ -15819,6 +15820,7 @@
 	        for(var i in archive){
 	          var id = archive[i].id;
 	          var data = {
+	            name: archive[i].name,
 	            id:archive[i].id,
 	            creationTime:new Date(archive[i].creationTime),
 	            viewReport:"<input class='view-report' type='button' data-id='" + id + "' value='View'></input>",
@@ -16467,6 +16469,7 @@
 	        var memoryEle = $(`<h3>Memory Report</h3><div class="flot-chart">
 	            <div class="flot-chart-content" id="memory-report"></div>
 	        </div>`);
+	        this.el.append($("<h3></h3>").text(report.name + ": " + report.id));
 	        this.el.append(cpuEle);
 	        this.el.append(memoryEle);
 	        $.plot($("#cpu-report"), report.cpuSeries, {

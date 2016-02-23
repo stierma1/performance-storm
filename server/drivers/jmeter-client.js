@@ -37,24 +37,29 @@ class JmeterClient {
   }
 
   initialize(){
-    this._buildNewSshClient();
-    mediator.emit("data", "initalize " + this._sshConfig.host);
-    return new Promise((res, rej) => {
-      this._ssh.exec("sudo ./initialize.sh", {
-        exit: (code, stdout, stderr) => {
-          if(this.kill){
-            rej("Client was killed");
-            return;
-          }
-          if(code !== 0){
-            mediator.emit("error", "initialized " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, code:code, out:stdout, err:stderr});
-          } else {
-            mediator.emit("data", "initialized " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, code:code, out:stdout, err:stderr});
-          }
-          res();
-        }
-      }).start();
-    });
+    return this.credentialsDriver.get()
+      .then((creds) => {
+        this._sshConfig = _.extend(creds, this._sshConfig);
+        this._scpConfig = _.extend(creds, this._scpConfig);
+        this._buildNewSshClient();
+        mediator.emit("data", "initalize " + this._sshConfig.host);
+        return new Promise((res, rej) => {
+          this._ssh.exec("sudo ./initialize.sh", {
+            exit: (code, stdout, stderr) => {
+              if(this.kill){
+                rej("Client was killed");
+                return;
+              }
+              if(code !== 0){
+                mediator.emit("error", "initialized " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, code:code, out:stdout, err:stderr});
+              } else {
+                mediator.emit("data", "initialized " + this._sshConfig.host, {workerId: this.workerId, batchId:this.batchId, code:code, out:stdout, err:stderr});
+              }
+              res();
+            }
+          }).start();
+        });
+      });
   }
 
   consumeRun(run){
