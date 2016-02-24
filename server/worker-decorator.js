@@ -72,6 +72,15 @@ module.exports = function(worker){
   };
 
   worker.publishKill = function(reason){
+    var fileStorageDriver = new FileStorage({batchId:this.current_batch.id})
+    fs.writeFileSync(fileStorageDriver.getFailurePath(),
+      JSON.stringify({
+        id: this.current_batch.id,
+        name: this.current_batch.name,
+        reason: reason,
+        failureTime: new Date()
+      })
+    );
     console.log(this.current_batch.id ,reason)
   }
 

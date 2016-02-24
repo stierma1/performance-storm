@@ -39,3 +39,4 @@ servers-info/jmeter-servers/*.json
 servers-info/target-servers/*.json
 .vagrant
 credentials/*.json
+failures/*.json

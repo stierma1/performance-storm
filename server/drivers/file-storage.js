@@ -8,6 +8,7 @@ var testFilePath = path.join(__dirname, "../../", Props.testFileDirectory);
 var credentialsPath = path.join(__dirname, "../../", Props.credentialsFileDirectory);
 var serversFilePath = path.join(__dirname, "../../", Props.serversFileDirectory);
 var archiveFilePath = path.join(__dirname, "../../", Props.archiveFileDirectory);
+var failuresFilePath = path.join(__dirname, "../../", Props.failuresFileDirectory);
 var glob = require("glob");
 var fs = require("fs");
 
@@ -128,6 +129,17 @@ class FileStorage {
     return glob.sync(path.join(archiveFilePath, "*"))
       .map(function(zipPath){
         return {id:path.basename(zipPath, ".zip"), creationTime:fs.statSync(zipPath).birthtime};
+      });
+  }
+
+  getFailurePath(){
+    return path.join(failuresFilePath, this.batchId + ".json");
+  }
+
+  getFailures(){
+    return glob.sync(path.join(failuresFilePath, "*"))
+      .map(function(failurePath){
+        return path.basename(failurePath, ".json");
       });
   }
 

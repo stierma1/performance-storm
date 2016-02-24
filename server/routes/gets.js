@@ -117,4 +117,14 @@ module.exports = (app) => {
     standardReport.loadGeneralInfo();
     res.json(standardReport.generate());
   });
+
+  app.get("/failures", function(req, res){
+    var fileStorageDriver = new FileStorage();
+    var failures = fileStorageDriver.getFailures();
+    var failureObjs = failures.map(function(failure){
+      var fileStorage = new FileStorage({batchId:failure});
+      return JSON.parse(fs.readFileSync(fileStorage.getFailurePath(), "utf8"));
+    });
+    res.json(failureObjs);
+  });
 }
