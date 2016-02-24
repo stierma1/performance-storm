@@ -1,6 +1,6 @@
 "use strict"
 
-var zip = require("node-zip");
+var ADMZip = require("adm-zip");
 var FileStorage = require("../drivers/file-storage");
 var fs = require("fs");
 
@@ -14,10 +14,16 @@ class StandardReport {
     this.generalReport = null;
   }
 
+  getMeta(){
+    var zip = new ADMZip(this.fileStorageDriver.getArchivePath());
+
+    return JSON.parse(zip.getZipComment());
+  }
+
   loadGeneralInfo(){
-    var archiveBits = fs.readFileSync(this.fileStorageDriver.getArchivePath());
-    this.zipFile = zip(archiveBits, {checkCRC32: true});
-    this.info = JSON.parse(this.zipFile.files["info.json"].asText());
+    var zip = new ADMZip(this.fileStorageDriver.getArchivePath());
+    this.zipFile = zip;
+    this.info = JSON.parse(zip.getEntry("info.json").getData().toString("utf8"));
 
     return this.info;
   }
@@ -32,7 +38,7 @@ class StandardReport {
        name: this.info.name,
        publishGuides: this.info.publishGuides,
        runs: this.info.runs.map((runObj) => {
-         var runReport = JSON.parse(this.zipFile.files[runObj.id + "/general-run-report.json"].asText());
+         var runReport = JSON.parse(this.zipFile.getEntry(runObj.id + "/general-run-report.json").getData().toString("utf8"));
          runObj.report = runReport;
          return runObj;
        })

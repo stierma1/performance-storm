@@ -68,8 +68,7 @@ module.exports = (app) => {
       (new FileStorage()).getArchive()
         .map(function(val){
           var standardReport = new StandardReport(val.id);
-          standardReport.loadGeneralInfo();
-          val.name = standardReport.info.name;
+          val.name = standardReport.getMeta().name;
           return val;
         })
     );

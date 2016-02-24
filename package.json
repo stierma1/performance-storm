@@ -50,13 +50,13 @@
     "window-slots": "^1.0.16"
   },
   "dependencies": {
+    "adm-zip": "^0.4.7",
     "archiver": "^0.21.0",
     "body-parser": "^1.14.2",
     "busboy": "^0.2.12",
     "glob": "^6.0.4",
     "lodash": "^4.1.0",
     "mkdirp": "^0.5.1",
-    "node-zip": "^1.1.1",
     "request": "^2.67.0",
     "scp2": "^0.2.2",
     "simple-ssh": "^0.8.7",
