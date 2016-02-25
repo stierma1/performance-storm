@@ -47,6 +47,10 @@ class Services {
     return $.ajax(Props.performanceStormUrl + "/reports/standard-report/" + batchId);
   }
 
+  getFailures(){
+    return $.ajax(Props.performanceStormUrl + "/failures");
+  }
+
   getArchive(){
     return $.ajax(Props.performanceStormUrl + "/archive");
   }
