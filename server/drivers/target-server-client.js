@@ -34,7 +34,6 @@ class TargetServerClient {
   initialize(){
     this.credentialsDriver.get()
       .then((creds) => {
-
         this._sshConfig = _.extend(creds, this._sshConfig);
         this._scpConfig = _.extend(creds, this._scpConfig);
 
@@ -42,7 +41,8 @@ class TargetServerClient {
 
       return new Promise((res, rej) => {
         this._ssh.exec("./initialize.sh", {
-          exit: function(code, stdout, stderr){
+          exit: (code, stdout, stderr) => {
+            mediator.emit("data", "initialized " + this._sshConfig.host);
             res();
           }
         }).start();

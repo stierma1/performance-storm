@@ -4,6 +4,7 @@ var TargetServerClient = require("./drivers/target-server-client");
 var FileStorage = require("./drivers/file-storage");
 var Archive = require("./post-processing/archiving");
 var CommonRunFields = require("./post-processing/reporting/run-fields");
+var parser = new (require("xml2js").Parser)();
 var fs = require("fs");
 var _ = require("lodash");
 var path = require("path");
@@ -46,14 +47,27 @@ module.exports = function(worker){
         var targetServerResults = resultsArr[1];
         var fileStorageDriver = new FileStorage({batchId:this.current_batch.id, runId:this.current_run.id});
         var runResults = fs.readFileSync(fileStorageDriver.getTargetServerResultsPath() + "/sys-results.json", "utf8");
-        var runFields = new CommonRunFields(JSON.parse(runResults))
-        fs.writeFileSync(fileStorageDriver.getTargetServerResultsPath() + "/general-run-report.json", JSON.stringify(runFields.generalReport(), null, 2))
+        var runFields = new CommonRunFields(JSON.parse(runResults));
+        fs.writeFileSync(fileStorageDriver.getTargetServerResultsPath() + "/general-run-report.json", JSON.stringify(runFields.generalReport(), null, 2));
+        var xmlFile = fs.readFileSync(fileStorageDriver.getTargetServerResultsPath() + "/jmeter-results.xml", "utf8");
+
         this.ee.emit("publish-run", {
           run: this.current_run,
           batch: this.current_batch,
           worker: this,
           jmeterResults: jmeterResults,
           targetServerResults: targetServerResults
+        });
+
+        return new Promise((res, rej) => {
+          parser.parseString(xmlFile, (err, jsonData) => {
+            if(err){
+              rej(err);
+              return;
+            }
+            fs.writeFileSync(fileStorageDriver.getTargetServerResultsPath() + "/jmeter-results.json", JSON.stringify(jsonData));
+            res(jsonData);
+          });
         });
       });
   };
@@ -63,6 +77,7 @@ module.exports = function(worker){
       .then(() => {
         var fileStorageDriver = new FileStorage({batchId:this.current_batch.id});
         fs.writeFileSync(fileStorageDriver.getBatchPath() + "/done.json", JSON.stringify({endTime:new Date()}, null, 2));
+
         Archive.publish({
           location: fileStorageDriver.getBatchPath(),
           batch: this.current_batch,
@@ -101,7 +116,7 @@ module.exports = function(worker){
         return this.targetServerClient.initialize();
       });
   };
-}
+};
 
 function bindRunToServer(run){
   var fileStorageDriver = new FileStorage();

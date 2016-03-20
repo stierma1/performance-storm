@@ -1,0 +1,209 @@
+# this is an example of the Uber API
+# as a demonstration of an API spec in YAML
+swagger: '2.0'
+info:
+  title: performance-storm API
+  description: Restful API Documentation
+  version: "1.0.0"
+# the domain of the service
+host: localhost:7171
+# array of all schemes that your API supports
+schemes:
+  - http
+# will be prefixed to all paths
+basePath: /
+produces:
+  - application/json
+paths:
+  /batches:
+    get:
+      summary: Get current batches in queue
+      tags:
+        - Batch
+      description: |
+        Get all batches that are currently being processed or enqueued to be processed.
+      parameters: []
+      responses:
+        200:
+          description: Array of batches that have not been completed
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Batch'
+        default:
+          description: Empty array
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Batch'
+    post:
+      summary: Create a new batch
+      tags:
+        - Batch
+        - Run
+      description: |
+        Submit a batch for processing
+      parameters:
+        - name: Batch
+          in: body
+          description: Batch updated for processing
+          required: true
+          schema:
+            $ref: '#/definitions/Batch'
+      responses:
+        200:
+          description: uuid of the submitted batch
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+          schema:
+            type: string
+  /runs:
+    get:
+      summary: Get current runs in queue
+      tags:
+        - Run
+      description: |
+        Get all runs that are currently being processed or enqueued to be processed.
+      parameters: []
+      responses:
+        200:
+          description: Array of runs that have not been completed
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Run'
+        default:
+          description: Empty array
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Run'
+  /archive:
+    get:
+      summary: Avaiable Zip files 
+      tags:
+        - Batch
+      parameters: []
+      responses:
+        200:
+          description: Array of completed and archived batches
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Archive'
+  /credentials:
+    get:
+      summary: Credentials
+      tags:
+        - Credential
+      description: |
+        Get all available credentials
+      parameters: []
+      responses:
+        200:
+          description: Array of credential names
+          schema:
+            type: array
+            items:
+              type: string
+  /failures:
+    get:
+      summary: Get list of all failures
+      tags:
+        - Batch
+        - Failure
+      description: |
+        Get the list of all failures currently persisted in the system.
+      parameters: []
+      responses:
+        200:
+          description: Array of failures
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Failure'
+        default:
+          description: Empty array
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Failure'
+definitions:
+  Batch:
+    type: object
+    properties:
+      id:
+        type: string
+        description: uuid of the batch
+      name:
+        type: string
+        description: name of the batch
+      publishGuides:
+        type: string
+        description: A comma seperated list of strings that will guide special reporting.
+      runs:
+        description: Runs to be generated.
+        type: array
+        items:
+          $ref: '#/definitions/Run'
+  Run:
+    type: object
+    properties:
+      id:
+        type: string
+        description: uuid of the run
+      name:
+        type: string
+        description: name of the run
+      testFile:
+        type: string
+        description: test file name
+      credential:
+        type: string
+        description: credential to use for target server
+      targetServer:
+        type: string
+        description: target server name
+      tags:
+        type: string
+        description: comma seperated list of strings
+      loops:
+        type: integer
+        description: number of jmeter loops
+      concurrency:
+        type: integer
+        description: number of jmeter threads
+      requestLimit:
+        type: integer
+        description: number of requests jmeter should be limited to
+  Archive:
+    type: object
+    properties:
+      id:
+        type: string
+        description: uuid of the archived batch
+      name:
+        type: string
+        description: name of the archived batch
+      creationTime:
+        type: string
+        format: datetime
+        description: Time archived file was created
+  Failure:
+    type: object
+    properties:
+      id:
+        type: string
+        description: uuid of the batch
+      name:
+        type: string
+        description: name of the batch
+      failureTime:
+        type: string
+        format: datetime
+        description: time failure occured
+      reason:
+        type: string
+        description: Reason for failure

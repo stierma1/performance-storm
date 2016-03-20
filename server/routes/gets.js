@@ -3,6 +3,7 @@ var FileStorage = require("../drivers/file-storage");
 var Runtime = require("../runtime/engine");
 var fs = require("fs");
 var StandardReport = require("../reports/standard-report");
+var JmeterReport = require("../reports/jmeter-report");
 
 module.exports = (app) => {
   app.get("/credentials", function(req, res){
@@ -76,7 +77,7 @@ module.exports = (app) => {
 
   app.get("/archive/:batchId", function(req, res){
     var fileStorageDriver = new FileStorage({batchId: req.params.batchId});
-    res.download(fileStorageDriver.getArchivePath());
+    res.sendFile(fileStorageDriver.getArchivePath());
   });
 
   app.get("/results/batches/:batchId/runs", function(req, res){
@@ -116,6 +117,12 @@ module.exports = (app) => {
     var standardReport = new StandardReport(req.params.batchId);
     standardReport.loadGeneralInfo();
     res.json(standardReport.generate());
+  });
+
+  app.get("/reports/jmeter-report/:batchId", function(req, res){
+    var jmeterReport = new JmeterReport(req.params.batchId);
+    jmeterReport.loadGeneralInfo();
+    res.json(jmeterReport.generate());
   });
 
   app.get("/failures", function(req, res){

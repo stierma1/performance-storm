@@ -47,6 +47,10 @@ class Services {
     return $.ajax(Props.performanceStormUrl + "/reports/standard-report/" + batchId);
   }
 
+  getJmeterReport(batchId){
+    return $.ajax(Props.performanceStormUrl + "/reports/jmeter-report/" + batchId);
+  }
+
   getFailures(){
     return $.ajax(Props.performanceStormUrl + "/failures");
   }
@@ -56,7 +60,7 @@ class Services {
   }
 
   getArchiveZip(batchId){
-    window.location.href = (Props.performanceStormUrl + "/archive/" + batchId);
+    window.open(Props.performanceStormUrl + "/archive/" + batchId, "_self");
   }
 }
 

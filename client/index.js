@@ -10,6 +10,7 @@ var UploadServerInfo = require("./content/upload-server-info");
 var UploadBatch = require("./content/upload-batch");
 var Bluebird = require("bluebird");
 var StandardReport = require("./content/standard-report");
+var JmeterReportTable = require("./content/jmeter-report-table");
 require('expose?$!expose?jQuery!jquery');
 require("bootstrap-webpack");
 
@@ -51,6 +52,7 @@ $(document).ready(function(){
       if(GetQueryStringParams("batchId")){
         var batchId = GetQueryStringParams("batchId");
         new StandardReport($("#standard-report"), batchId);
+        new JmeterReportTable($("#jmeter-report-table"), batchId);
       } else {
         new FailuresTable($("#failures-table"));
         new ArchiveTable($("#archive-table"));
