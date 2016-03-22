@@ -16567,12 +16567,15 @@
 	  constructor(el, batchId){
 	    this.el = $(el);
 	    this.batchId = batchId;
-	    this.el.css("display", "inline");
+	    //this.el.css("display", "inline");
 	    this.el.DataTable({
 	      paging: false,
 	      columns: [
 	          { data: 'name'},
-	          { data: 'number of requests' },
+	          { data: 'id'},
+	          { data: 'num requests' },
+	          { data: 'num successes' },
+	          { data: 'num non-200s' },
 	          { data: 'average-time' },
 	          { data: 'max-time' },
 	          { data: 'min-time' },
@@ -16589,9 +16592,14 @@
 	        var self = this;
 	        for(var i in fullReport.timeStats){
 	          var stat = fullReport.timeStats[i];
+	          var successes = fullReport.successStats[i];
+	          var responseCodes = fullReport.responseCodeStats[i];
 	          var data = {
-	            name: stat.label,
-	            "number of requests":stat.data.count,
+	            name: stat.name,
+	            id: stat.id,
+	            "num requests":stat.data.count,
+	            "num successes": successes.data.distribution["true"] || 0,
+	            "num non-200s": responseCodes.data.count - (responseCodes.data.distribution["200"] || 0),
 	            "average-time": stat.data.average,
 	            "max-time": stat.data.max,
 	            "min-time": stat.data.min,

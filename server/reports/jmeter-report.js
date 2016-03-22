@@ -47,6 +47,8 @@ class JmeterReport {
      };
 
      this.generalReport.timeStats = this.generateTimeStats();
+     this.generalReport.successStats = this.generateSuccessStats();
+     this.generalReport.responseCodeStats = this.generateResponseCodesStats();
      //this.generalReport.responseContentLength = this.generateResponseContentSizeStats();
      //this.generalReport.requestContentLength = this.generateRequestContentSizeStats();
 
@@ -64,6 +66,42 @@ class JmeterReport {
       statSwitch.selectInput("input").set(times);
       return {
         label: runObj.name + ": " + runObj.id,
+        name: runObj.name,
+        id: runObj.id,
+        data: statSwitch.aggregate()
+      }
+    });
+  }
+
+  generateSuccessStats(){
+    return this.generalReport.runs.map(function(runObj){
+      //console.log(runObj.report.testResults)
+      var successes = runObj.report["testResults"]["httpSample"].map(function(sample){
+        return sample["$"]["s"];
+      });
+      statSwitch.reset();
+      statSwitch.selectInput("input").set(successes);
+      return {
+        label: runObj.name + ": " + runObj.id,
+        name: runObj.name,
+        id: runObj.id,
+        data: statSwitch.aggregate()
+      }
+    });
+  }
+
+  generateResponseCodesStats(){
+    return this.generalReport.runs.map(function(runObj){
+      //console.log(runObj.report.testResults)
+      var responseCodes = runObj.report["testResults"]["httpSample"].map(function(sample){
+        return sample["$"]["rc"];
+      });
+      statSwitch.reset();
+      statSwitch.selectInput("input").set(responseCodes);
+      return {
+        label: runObj.name + ": " + runObj.id,
+        name: runObj.name,
+        id: runObj.id,
         data: statSwitch.aggregate()
       }
     });
@@ -83,10 +121,14 @@ class JmeterReport {
         }
         return 0;
       });
+
       statSwitch.reset();
       statSwitch.selectInput("input").set(lengths);
+
       return {
         label: runObj.name + ": " + runObj.id,
+        name: runObj.name,
+        id: runObj.id,
         data: statSwitch.aggregate()
       }
     });
@@ -110,6 +152,8 @@ class JmeterReport {
       statSwitch.selectInput("input").set(lengths);
       return {
         label: runObj.name + ": " + runObj.id,
+        name: runObj.name,
+        id: runObj.id,
         data: statSwitch.aggregate()
       }
     });
