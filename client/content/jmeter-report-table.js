@@ -8,7 +8,7 @@ class JmeterReportTable{
   constructor(el, batchId){
     this.el = $(el);
     this.batchId = batchId;
-    //this.el.css("display", "inline");
+    this.el.css("display", "inline");
     this.el.DataTable({
       paging: false,
       columns: [
