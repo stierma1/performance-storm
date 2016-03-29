@@ -20,7 +20,9 @@ class JmeterReportTable{
           { data: 'average-time' },
           { data: 'max-time' },
           { data: 'min-time' },
-          { data: 'median-time' }
+          { data: 'median-time' },
+          { data: '99th-max-time'},
+          { data: '95th-max-time'}
         ]
     });
     this.render();
@@ -35,6 +37,7 @@ class JmeterReportTable{
           var stat = fullReport.timeStats[i];
           var successes = fullReport.successStats[i];
           var responseCodes = fullReport.responseCodeStats[i];
+
           var data = {
             name: stat.name,
             id: stat.id,
@@ -45,7 +48,10 @@ class JmeterReportTable{
             "max-time": stat.data.max,
             "min-time": stat.data.min,
             "median-time": stat.data.median,
+            "99th-max-time": stat.data["99thMax"],
+            "95th-max-time": stat.data["95thMax"]
           };
+
           this.el.dataTable().fnAddData(data);
         }
       });
