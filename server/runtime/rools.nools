@@ -40,8 +40,9 @@ define Run {
   batch: null,
   targetServerHost: '',
   targetServer: '',
-  threads: 1,
+  concurrency: 1,
   loops: 1,
+  requestLimit: 100,
   credential: '',
   startTime: null
 }

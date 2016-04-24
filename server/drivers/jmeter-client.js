@@ -95,14 +95,14 @@ class JmeterClient {
     mediator.emit("data", "run " + this._sshConfig.host);
 
     return new Promise((res, rej) => {
-      var comm = "sudo TARGET_SERVER={TARGET_SERVER} TEST_FILE={TEST_FILE} JMETER_THREADS={JMETER_THREADS} JMETER_LOOPS={JMETER_LOOPS} TARGET_SERVER_HOST={TARGET_SERVER_HOST} TARGET_SERVER_PORT={TARGET_SERVER_PORT} ./run.sh";
+      var comm = "sudo TARGET_SERVER={TARGET_SERVER} TEST_FILE={TEST_FILE} THROUGHPUT={REQUEST_LIMIT} THREADS={CONCURRENCY} LOOPS={LOOPS} TARGET_SERVER_HOST={TARGET_SERVER_HOST} TARGET_SERVER_PORT={TARGET_SERVER_PORT} ./run.sh";
       comm = comm.replace("{TEST_FILE}", this.runObj.testFile);
-      comm = comm.replace("{JMETER_THREADS}", this.runObj.threads);
+      comm = comm.replace("{CONCURRENCY}", this.runObj.concurrency);
       comm = comm.replace("{TARGET_SERVER_HOST}", this.runObj.targetServerHost);
       comm = comm.replace("{TARGET_SERVER_PORT}", this.runObj.targetServerPort || null);
       comm = comm.replace("{TARGET_SERVER}", this.runObj.targetServerHost);
-      comm = comm.replace("{JMETER_LOOPS}", this.runObj.loops);
-
+      comm = comm.replace("{LOOPS}", this.runObj.loops);
+      comm = comm.replace("{REQUEST_LIMIT}", this.runObj.requestLimit);
       this._ssh.exec(comm, {
         pty:true,
         exit: (code, stdout, stderr) => {
