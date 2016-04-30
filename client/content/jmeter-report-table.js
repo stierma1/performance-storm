@@ -15,7 +15,7 @@ class JmeterReportTable{
           { data: 'name'},
           { data: 'id'},
           { data: 'num requests' },
-          { data: 'num successes' },
+          { data: 'throughput' },
           { data: 'num non-200s' },
           { data: 'average-time' },
           { data: 'max-time' },
@@ -37,12 +37,12 @@ class JmeterReportTable{
           var stat = fullReport.timeStats[i];
           var successes = fullReport.successStats[i];
           var responseCodes = fullReport.responseCodeStats[i];
-
+          var throughputs = fullReport.throughputStats[i];
           var data = {
             name: stat.name,
             id: stat.id,
             "num requests":stat.data.count,
-            "num successes": successes.data.distribution["true"] || 0,
+            "throughput": Math.round(throughputs.data),
             "num non-200s": responseCodes.data.count - (responseCodes.data.distribution["200"] || 0),
             "average-time": stat.data.average,
             "max-time": stat.data.max,

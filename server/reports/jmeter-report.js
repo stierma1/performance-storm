@@ -49,6 +49,7 @@ class JmeterReport {
      this.generalReport.timeStats = this.generateTimeStats();
      this.generalReport.successStats = this.generateSuccessStats();
      this.generalReport.responseCodeStats = this.generateResponseCodesStats();
+     this.generalReport.throughputStats = this.generateThroughputStats();
      //this.generalReport.responseContentLength = this.generateResponseContentSizeStats();
      //this.generalReport.requestContentLength = this.generateRequestContentSizeStats();
 
@@ -73,6 +74,23 @@ class JmeterReport {
     });
   }
 
+  generateThroughputStats(){
+    return this.generalReport.runs.map(function(runObj){
+      //console.log(runObj.report.testResults)
+      var times = runObj.report["testResults"]["httpSample"].map(function(sample){
+        return parseFloat(sample["$"]["ts"]);
+      });
+      statSwitch.reset();
+      statSwitch.selectInput("input").set(times);
+      return {
+        label: runObj.name + ": " + runObj.id,
+        name: runObj.name,
+        id: runObj.id,
+        data: statSwitch.selectOutput("count").get()/((statSwitch.selectOutput("max").get() - statSwitch.selectOutput("min").get())/1000)
+      }
+    });
+  }
+
   generateSuccessStats(){
     return this.generalReport.runs.map(function(runObj){
       //console.log(runObj.report.testResults)
@@ -81,11 +99,14 @@ class JmeterReport {
       });
       statSwitch.reset();
       statSwitch.selectInput("input").set(successes);
+      var sucStat = statSwitch.aggregate();
+      delete sucStat.sum
+      delete sucStat.distribution
       return {
         label: runObj.name + ": " + runObj.id,
         name: runObj.name,
         id: runObj.id,
-        data: statSwitch.aggregate()
+        data: sucStat
       }
     });
   }
